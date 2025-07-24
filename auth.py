@@ -14,7 +14,6 @@ def register_user(username, password):
         return None, "Password must be 8+ characters long, with one letter, one number, and one special character."
     password_bytes = password.encode('utf-8')
     hashed = bcrypt.hashpw(password_bytes, bcrypt.gensalt())
-    print("[+] User registered successfully.")
     return hashed.decode('utf-8'), "Success"
 
 def verify_user(username, password, get_password_hash_func):

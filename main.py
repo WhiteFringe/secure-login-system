@@ -1,42 +1,58 @@
+import tkinter as tk
+from tkinter import messagebox
 import database
 import auth
 import dh_aes
+import context_utils
 
-def main():
-    database.create_db()
-    print("1. Register\n2. Login")
-    choice = input("Choose option: ")
+database.create_db()
+aes_key = dh_aes.compute_shared_key()
 
-    username = input("Username: ")
-    password = input("Password: ")
+def register_user():
+    username = entry_username.get()
+    password = entry_password.get()
+    gps = context_utils.get_gps_location()
+    mac = context_utils.get_mac()
+    password_hash, status = auth.register_user(username, password)
+    if password_hash is None:
+        messagebox.showerror("Error", status)
+        return
+    iv, gps_ct = dh_aes.aes_encrypt(gps, aes_key)
+    _, mac_ct = dh_aes.aes_encrypt(mac, aes_key)
+    database.add_user_extended(username, password_hash, gps_ct, mac_ct, iv)
+    messagebox.showinfo("Success", "User registered successfully!")
 
-    if choice == '1':
-        auth.register_user(username, password)
+def login_user():
+    username = entry_username.get()
+    password = entry_password.get()
+    gps = context_utils.get_gps_location()
+    mac = context_utils.get_mac()
+    if not auth.verify_user(username, password, database.get_password_hash):
+        messagebox.showerror("Login Failed", "Invalid username or password.")
+        return
+    gps_enc_stored, mac_enc_stored, iv = database.get_encrypted_context(username)
+    if not gps_enc_stored or not mac_enc_stored:
+        messagebox.showerror("Login Failed", "Context not found.")
+        return
+    gps_dec = dh_aes.aes_decrypt(gps_enc_stored, iv, aes_key)
+    mac_dec = dh_aes.aes_decrypt(mac_enc_stored, iv, aes_key)
+    if gps == gps_dec and mac == mac_dec:
+        messagebox.showinfo("Login Success", "Login successful and context verified!")
+    else:
+        messagebox.showerror("Login Failed", "GPS/MAC verification failed.")
 
-    elif choice == '2':
-        if auth.verify_user(username, password):
-            print("[+] Login successful!")
+root = tk.Tk()
+root.title("Secure Login System")
 
-            # Diffie-Hellman Key Exchange Simulation
-            priv1, pub1 = dh_aes.generate_dh_keys()
-            priv2, pub2 = dh_aes.generate_dh_keys()
+tk.Label(root, text="Username").grid(row=0, column=0, padx=10, pady=5)
+entry_username = tk.Entry(root)
+entry_username.grid(row=0, column=1, padx=10, pady=5)
 
-            key1 = dh_aes.compute_shared_key(pub2, priv1)
-            key2 = dh_aes.compute_shared_key(pub1, priv2)
+tk.Label(root, text="Password").grid(row=1, column=0, padx=10, pady=5)
+entry_password = tk.Entry(root, show="*")
+entry_password.grid(row=1, column=1, padx=10, pady=5)
 
-            assert key1 == key2
-            aes_key = key1
+tk.Button(root, text="Register", command=register_user).grid(row=2, column=0, padx=10, pady=10)
+tk.Button(root, text="Login", command=login_user).grid(row=2, column=1, padx=10, pady=10)
 
-            # Simulated sensitive data
-            secret = "GPS=43.14,80.24|MAC=AA:BB:CC:DD"
-            iv, ct = dh_aes.aes_encrypt(secret, aes_key)
-
-            print("[+] Encrypted data:", ct.hex())
-            decrypted = dh_aes.aes_decrypt(ct, iv, aes_key)
-            print("[+] Decrypted data:", decrypted)
-
-        else:
-            print("[-] Login failed.")
-
-if __name__ == "__main__":
-    main()
+root.mainloop()

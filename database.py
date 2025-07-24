@@ -11,20 +11,21 @@ def create_db():
                 password_hash TEXT NOT NULL,
                 gps_enc BLOB,
                 mac_enc BLOB,
-                iv BLOB
+                iv_gps BLOB,
+                iv_mac BLOB
             )
         ''')
         conn.commit()
         conn.close()
 
-def add_user_extended(username, password_hash, gps_enc, mac_enc, iv):
+def add_user_extended(username, password_hash, gps_enc, mac_enc, iv_gps, iv_mac):
     conn = sqlite3.connect('users.db')
     cursor = conn.cursor()
     try:
         cursor.execute('''
-            INSERT INTO users (username, password_hash, gps_enc, mac_enc, iv)
-            VALUES (?, ?, ?, ?, ?)
-        ''', (username, password_hash, gps_enc, mac_enc, iv))
+            INSERT INTO users (username, password_hash, gps_enc, mac_enc, iv_gps, iv_mac)
+            VALUES (?, ?, ?, ?, ?, ?)
+        ''', (username, password_hash, gps_enc, mac_enc, iv_gps, iv_mac))
         conn.commit()
     except sqlite3.IntegrityError:
         print("[!] User already exists.")
@@ -42,7 +43,7 @@ def get_password_hash(username):
 def get_encrypted_context(username):
     conn = sqlite3.connect('users.db')
     cursor = conn.cursor()
-    cursor.execute('SELECT gps_enc, mac_enc, iv FROM users WHERE username=?', (username,))
+    cursor.execute('SELECT gps_enc, mac_enc, iv_gps, iv_mac FROM users WHERE username=?', (username,))
     result = cursor.fetchone()
     conn.close()
-    return result if result else (None, None, None)
+    return result if result else (None, None, None, None)

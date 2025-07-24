@@ -2,7 +2,6 @@ import bcrypt
 import re
 
 def validate_password(password):
-    # Password must have 8 characters, at least one number, one special character, and one letter
     if (len(password) >= 8 and
         re.search(r"[A-Za-z]", password) and
         re.search(r"\d", password) and

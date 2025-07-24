@@ -17,9 +17,9 @@ def register_user():
     if password_hash is None:
         messagebox.showerror("Error", status)
         return
-    iv, gps_ct = dh_aes.aes_encrypt(gps, aes_key)
-    _, mac_ct = dh_aes.aes_encrypt(mac, aes_key)
-    database.add_user_extended(username, password_hash, gps_ct, mac_ct, iv)
+    iv_gps, gps_ct = dh_aes.aes_encrypt(gps, aes_key)
+    iv_mac, mac_ct = dh_aes.aes_encrypt(mac, aes_key)
+    database.add_user_extended(username, password_hash, gps_ct, mac_ct, iv_gps, iv_mac)
     messagebox.showinfo("Success", "User registered successfully!")
 
 def login_user():
@@ -30,12 +30,12 @@ def login_user():
     if not auth.verify_user(username, password, database.get_password_hash):
         messagebox.showerror("Login Failed", "Invalid username or password.")
         return
-    gps_enc_stored, mac_enc_stored, iv = database.get_encrypted_context(username)
+    gps_enc_stored, mac_enc_stored, iv_gps, iv_mac = database.get_encrypted_context(username)
     if not gps_enc_stored or not mac_enc_stored:
         messagebox.showerror("Login Failed", "Context not found.")
         return
-    gps_dec = dh_aes.aes_decrypt(gps_enc_stored, iv, aes_key)
-    mac_dec = dh_aes.aes_decrypt(mac_enc_stored, iv, aes_key)
+    gps_dec = dh_aes.aes_decrypt(gps_enc_stored, iv_gps, aes_key)
+    mac_dec = dh_aes.aes_decrypt(mac_enc_stored, iv_mac, aes_key)
     if gps == gps_dec and mac == mac_dec:
         messagebox.showinfo("Login Success", "Login successful and context verified!")
     else:

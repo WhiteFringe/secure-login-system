@@ -1,0 +1,15 @@
+# Core Python Version
+python==3.12.4
+
+# Cryptography & Security
+bcrypt==4.1.2
+pycryptodome==3.20.0
+
+# GUI
+tk==0.1.0  # Tkinter GUI
+
+# Utility Modules
+requests==2.31.0
+
+# JSON & Regex are included in the standard Python library
+
